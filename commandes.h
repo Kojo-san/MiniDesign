@@ -1,130 +1,152 @@
 #pragma once
-
+#include <map>
+#include <stack>
 #include <memory>
-#include <vector>
 #include <string>
-#include <functional>
+#include <vector>
+#include "Domaine.h"
+#include "Surfaces.h"
 
-#include "ICommand.h"
-#include "NuageDePoints.h"
-#include "AfficheurO1.h"
-#include "AfficheurO2.h"
-#include "GestionnaireSurface.h"
+// ===== Commande =====
 
-class IElement;  
-class NuageDePoints;
-class AfficheurO1;
-class AfficheurO2;
-class GestionnaireSurface;
-class ITexture;
-class Surface;
+class ICommand {
+public:
+    virtual ~ICommand() = default;
+    virtual void executer() = 0;
+    virtual void annuler() = 0;
+};
 
-/// Commande : afficher la liste des points et nuages
+class Historique {
+public:
+    void pushExec(std::unique_ptr<ICommand> cmd);
+    void undo();
+    void redo();
+private:
+    std::stack<std::unique_ptr<ICommand>> pileUndo_;
+    std::stack<std::unique_ptr<ICommand>> pileRedo_;
+};
+
+class ControleurCommandes {
+public:
+    ControleurCommandes(NuageDePoints& nuage,
+                        AfficheurO1& aff1,
+                        AfficheurO2& aff2,
+                        GestionnaireSurface& gest);
+
+    void executerCommande(const std::string& nom);
+    void undo();
+    void redo();
+
+private:
+    NuageDePoints& nuage_;
+    AfficheurO1& aff1_;
+    AfficheurO2& aff2_;
+    GestionnaireSurface& gest_;
+    Historique hist_;
+    void creerEtExecuter(const std::string& nom);
+};
+
+// a
 class CmdAfficherListe : public ICommand {
 public:
-    explicit CmdAfficherListe(NuageDePoints& nuage);
-
+    CmdAfficherListe(NuageDePoints& n) : nuage_(n) {}
     void executer() override;
-    void annuler() override {}  // rien à annuler
-
+    void annuler() override {}
 private:
     NuageDePoints& nuage_;
 };
 
-/// Commande : afficher l’orthèse avec les textures (o1)
+// o1
 class CmdAfficherO1 : public ICommand {
 public:
-    explicit CmdAfficherO1(AfficheurO1& aff);
-
+    CmdAfficherO1(AfficheurO1& a, const NuageDePoints& n, const GestionnaireSurface& g)
+        : aff_(a), nuage_(n), gest_(g) {}
     void executer() override;
-    void annuler() override {}  // rien à annuler
-
+    void annuler() override {}
 private:
     AfficheurO1& aff_;
+    const NuageDePoints& nuage_;
+    const GestionnaireSurface& gest_;
 };
 
-/// Commande : afficher l’orthèse avec les IDs (o2)
+// o2
 class CmdAfficherO2 : public ICommand {
 public:
-    explicit CmdAfficherO2(AfficheurO2& aff);
-
+    CmdAfficherO2(AfficheurO2& a, const NuageDePoints& n, const GestionnaireSurface& g)
+        : aff_(a), nuage_(n), gest_(g) {}
     void executer() override;
-    void annuler() override {}  // rien à annuler
-
+    void annuler() override {}
 private:
     AfficheurO2& aff_;
+    const NuageDePoints& nuage_;
+    const GestionnaireSurface& gest_;
 };
 
-/// Commande : fusionner des points dans un nuage (changer leur texture)
+// f
 class CmdFusion : public ICommand {
 public:
-    explicit CmdFusion(NuageDePoints& nuage);
-
+    CmdFusion(NuageDePoints& n, AfficheurO1& a1, AfficheurO2& a2);
     void executer() override;
-    void annuler() override;
-
+    void annuler() override {}
 private:
     NuageDePoints& nuage_;
+    AfficheurO1& a1_;
+    AfficheurO2& a2_;
     std::vector<int> ids_;
-    std::vector<ITexture*> anciennesTextures_;
-    ITexture* nouvelleTexture_ = nullptr;
-    bool aEteExecute_ = false;
+    std::string texture_;
 };
 
-/// Commande : déplacer un point (undo = revenir à l’ancienne position)
+// d
 class CmdDeplacer : public ICommand {
 public:
-    explicit CmdDeplacer(NuageDePoints& nuage);
-
+    CmdDeplacer(NuageDePoints& n, AfficheurO1& a1, AfficheurO2& a2);
     void executer() override;
     void annuler() override;
-
 private:
     NuageDePoints& nuage_;
+    AfficheurO1& a1_;
+    AfficheurO2& a2_;
     int id_ = -1;
-    int ancienX_ = 0, ancienY_ = 0;
-    int nouveauX_ = 0, nouveauY_ = 0;
-    bool aEteExecute_ = false;
+    int ancienX_, ancienY_;
+    int nouvX_, nouvY_;
 };
 
-/// Commande : supprimer un point (undo = le réinsérer)
+// s
 class CmdSupprimer : public ICommand {
 public:
-    explicit CmdSupprimer(NuageDePoints& nuage);
+    CmdSupprimer(NuageDePoints& n, int id);
 
     void executer() override;
     void annuler() override;
 
 private:
     NuageDePoints& nuage_;
-    int id_ = -1;
-    IElement* sauvegarde_ = nullptr;
-    std::size_t index_ = 0;
+    int id_;
+
+    std::unique_ptr<IElement> sauvegarde_;
+    int index_ = -1;
     bool aEteExecute_ = false;
 };
 
-/// Commande : générer surface C1 (ordre IDs)
+// c1 / c2
 class CmdSurfaceC1 : public ICommand {
 public:
-    CmdSurfaceC1(GestionnaireSurface& gest, NuageDePoints& nuage);
-
+    CmdSurfaceC1(GestionnaireSurface& g, const NuageDePoints& n)
+        : gest_(g), nuage_(n) {}
     void executer() override;
-    void annuler() override {}  // rien à annuler
-
+    void annuler() override {}
 private:
     GestionnaireSurface& gest_;
-    NuageDePoints& nuage_;
+    const NuageDePoints& nuage_;
 };
 
-/// Commande : générer surface C2 (distance minimale)
 class CmdSurfaceC2 : public ICommand {
 public:
-    CmdSurfaceC2(GestionnaireSurface& gest, NuageDePoints& nuage);
-
+    CmdSurfaceC2(GestionnaireSurface& g, const NuageDePoints& n)
+        : gest_(g), nuage_(n) {}
     void executer() override;
-    void annuler() override {}  // rien à annuler
-
+    void annuler() override {}
 private:
     GestionnaireSurface& gest_;
-    NuageDePoints& nuage_;
+    const NuageDePoints& nuage_;
 };

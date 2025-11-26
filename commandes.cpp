@@ -1,249 +1,188 @@
 #include "Commandes.h"
-#include "NuageDePoints.h"
-#include "Point.h"
-#include "IElement.h"
-#include "AfficheurO1.h"
-#include "AfficheurO2.h"
-#include "TextureSimple.h"
-#include "TextureLibre.h"
-#include "TextureVide.h"
-#include "GestionnaireSurface.h"
-#include "CreateurSurfaceC1.h"
-#include "CreateurSurfaceC2.h"
 #include <iostream>
 #include <sstream>
+using namespace std;
 
-// ------------------------------------------------------------
-// CmdAfficherListe
-// ------------------------------------------------------------
+// ================= Historique =================
 
-CmdAfficherListe::CmdAfficherListe(NuageDePoints& nuage)
-    : nuage_(nuage) {}
+void Historique::pushExec(unique_ptr<ICommand> cmd) {
+    cmd->executer();
+    pileUndo_.push(std::move(cmd));
+    while (!pileRedo_.empty()) pileRedo_.pop();
+}
+
+void Historique::undo() {
+    if (pileUndo_.empty()) return;
+    auto cmd = std::move(pileUndo_.top());
+    pileUndo_.pop();
+    cmd->annuler();
+    pileRedo_.push(std::move(cmd));
+}
+
+void Historique::redo() {
+    if (pileRedo_.empty()) return;
+    auto cmd = std::move(pileRedo_.top());
+    pileRedo_.pop();
+    cmd->executer();
+    pileUndo_.push(std::move(cmd));
+}
+
+// ================= Controleur =================
+
+ControleurCommandes::ControleurCommandes(NuageDePoints& n,
+                                         AfficheurO1& a1,
+                                         AfficheurO2& a2,
+                                         GestionnaireSurface& g)
+    : nuage_(n), aff1_(a1), aff2_(a2), gest_(g) {}
+
+void ControleurCommandes::executerCommande(const string& nom) {
+    creerEtExecuter(nom);
+}
+
+void ControleurCommandes::undo() { hist_.undo(); }
+void ControleurCommandes::redo() { hist_.redo(); }
+
+void ControleurCommandes::creerEtExecuter(const string& nom) {
+    if (nom == "a") hist_.pushExec(make_unique<CmdAfficherListe>(nuage_));
+    else if (nom == "o1") hist_.pushExec(make_unique<CmdAfficherO1>(aff1_, nuage_, gest_));
+    else if (nom == "o2") hist_.pushExec(make_unique<CmdAfficherO2>(aff2_, nuage_, gest_));
+    else if (nom == "f") hist_.pushExec(make_unique<CmdFusion>(nuage_, aff1_, aff2_));
+    else if (nom == "d") hist_.pushExec(make_unique<CmdDeplacer>(nuage_, aff1_, aff2_));
+    else if (nom == "s") hist_.pushExec(make_unique<CmdSupprimer>(nuage_, 0)); // corrigé ci-dessous
+    else if (nom == "c1") hist_.pushExec(make_unique<CmdSurfaceC1>(gest_, nuage_));
+    else if (nom == "c2") hist_.pushExec(make_unique<CmdSurfaceC2>(gest_, nuage_));
+}
+
+// ================= Commandes =================
 
 void CmdAfficherListe::executer() {
-    nuage_.afficher();
+    nuage_.afficherListe(cout);
 }
-
-// ------------------------------------------------------------
-// CmdAfficherO1
-// ------------------------------------------------------------
-
-CmdAfficherO1::CmdAfficherO1(AfficheurO1& aff)
-    : aff_(aff) {}
 
 void CmdAfficherO1::executer() {
-    aff_.actualiser();
+    vector<Point*> pts;
+    const_cast<NuageDePoints&>(nuage_).collecterPoints(pts);
+
+    vector<Pixel> px;
+    for (auto* p : pts)
+        px.push_back({ p->x(), p->y(), p->symbolePourAffichage() });
+
+    cout << "\n\n";
+    dessinerGrille(px, gest_.segmentsCourants());
 }
-
-// ------------------------------------------------------------
-// CmdAfficherO2
-// ------------------------------------------------------------
-
-CmdAfficherO2::CmdAfficherO2(AfficheurO2& aff)
-    : aff_(aff) {}
 
 void CmdAfficherO2::executer() {
-    aff_.actualiser();
+    vector<Point*> pts;
+    const_cast<NuageDePoints&>(nuage_).collecterPoints(pts);
+
+    vector<Pixel> px;
+    for (auto* p : pts) {
+        char c = (p->getId() < 10 ? '0' + p->getId() : '*');
+        px.push_back({ p->x(), p->y(), c });
+    }
+
+    cout << "\n\n";
+    dessinerGrille(px, gest_.segmentsCourants());
 }
 
-// ------------------------------------------------------------
-// CmdFusion
-// ------------------------------------------------------------
+// ===== Fusion =====
 
-CmdFusion::CmdFusion(NuageDePoints& nuage)
-    : nuage_(nuage) {}
+CmdFusion::CmdFusion(NuageDePoints& n, AfficheurO1& a1, AfficheurO2& a2)
+    : nuage_(n), a1_(a1), a2_(a2) {}
 
 void CmdFusion::executer() {
+    cout << "IDs des points a fusionner : ";
+    string l;
+    getline(cin, l);
     ids_.clear();
-    anciennesTextures_.clear();
-    nouvelleTexture_ = nullptr;
-    aEteExecute_ = false;
 
-    std::cout << "IDs des points à fusionner (ex: 0 2 4) : ";
-    std::string ligne;
-    std::getline(std::cin, ligne);
-    std::istringstream iss(ligne);
     int id;
-    while (iss >> id) {
-        ids_.push_back(id);
-    }
+    istringstream iss(l);
+    while (iss >> id) ids_.push_back(id);
 
-    if (ids_.empty()) {
-        std::cout << "Aucun ID fourni, annulation de la fusion.\n";
-        return;
-    }
+    cout << "Texture : ";
+    getline(cin, texture_);
 
-    std::cout << "Texture à appliquer (ex: o, #, o#, l, st, ...) : ";
-    std::string t;
-    std::getline(std::cin, t);
+    for (int pid : ids_)
+        if (auto* p = nuage_.trouverPointParId(pid))
+            p->setTexture(creerTextureDepuisString(texture_));
 
-    if (t.empty()) {
-        nouvelleTexture_ = new TextureVide();
-    } else if (t.size() == 1) {
-        nouvelleTexture_ = new TextureSimple(t);
-    } else {
-        nouvelleTexture_ = new TextureLibre(t);
-    }
-
-    for (int pid : ids_) {
-        Point* p = nuage_.trouverPointParId(pid);  // friend
-        if (p) {
-            anciennesTextures_.push_back(p->getTexture());
-            p->setTexture(nouvelleTexture_);
-        } else {
-            anciennesTextures_.push_back(nullptr);
-        }
-    }
-
-    aEteExecute_ = true;
-    nuage_.notifier();
+    cout << "\n";
+    a1_.afficher();
+    a2_.afficher();
 }
 
-void CmdFusion::annuler() {
-    if (!aEteExecute_) return;
+// ===== Déplacer =====
 
-    for (std::size_t i = 0; i < ids_.size(); ++i) {
-        int pid = ids_[i];
-        Point* p = nuage_.trouverPointParId(pid);
-        if (p) {
-            p->setTexture(anciennesTextures_[i]);
-        }
-    }
-    nuage_.notifier();
-    // On ne delete pas nouvelleTexture_ ici pour éviter d'invalider
-    // les pointeurs éventuellement utilisés; petite fuite acceptable.
-}
-
-// ------------------------------------------------------------
-// CmdDeplacer
-// ------------------------------------------------------------
-
-CmdDeplacer::CmdDeplacer(NuageDePoints& nuage)
-    : nuage_(nuage) {}
+CmdDeplacer::CmdDeplacer(NuageDePoints& n, AfficheurO1& a1, AfficheurO2& a2)
+    : nuage_(n), a1_(a1), a2_(a2) {}
 
 void CmdDeplacer::executer() {
-    std::cout << "ID du point à déplacer : ";
-    if (!(std::cin >> id_)) {
-        std::cin.clear();
-        std::cin.ignore(10000, '\n');
-        std::cout << "Entrée invalide.\n";
-        return;
-    }
-    std::cout << "Nouvelle position x y : ";
-    if (!(std::cin >> nouveauX_ >> nouveauY_)) {
-        std::cin.clear();
-        std::cin.ignore(10000, '\n');
-        std::cout << "Entrée invalide.\n";
-        return;
-    }
-    std::cin.ignore(10000, '\n'); // consommer le \n
+    cout << "ID du point : ";
+    cin >> id_;
+    cout << "Nouvelle position (x y) : ";
+    cin >> nouvX_ >> nouvY_;
+    string dummy; getline(cin, dummy);
 
-    Point* p = nuage_.trouverPointParId(id_);
-    if (!p) {
-        std::cout << "Point introuvable.\n";
-        return;
+    if (auto* p = nuage_.trouverPointParId(id_)) {
+        ancienX_ = p->x();
+        ancienY_ = p->y();
+        p->setPos(nouvX_, nouvY_);
     }
 
-    ancienX_ = p->getX();
-    ancienY_ = p->getY();
-
-    p->setPosition(nouveauX_, nouveauY_);
-    aEteExecute_ = true;
-    nuage_.notifier();
+    a1_.afficher();
+    a2_.afficher();
 }
 
 void CmdDeplacer::annuler() {
-    if (!aEteExecute_) return;
-
-    Point* p = nuage_.trouverPointParId(id_);
-    if (!p) return;
-
-    p->setPosition(ancienX_, ancienY_);
-    nuage_.notifier();
+    if (auto* p = nuage_.trouverPointParId(id_))
+        p->setPos(ancienX_, ancienY_);
 }
 
-// ------------------------------------------------------------
-// CmdSupprimer
-// ------------------------------------------------------------
+// ===== Supprimer =====
 
-CmdSupprimer::CmdSupprimer(NuageDePoints& nuage)
-    : nuage_(nuage) {}
+CmdSupprimer::CmdSupprimer(NuageDePoints& n, int id)
+    : nuage_(n), id_(id) {}
 
 void CmdSupprimer::executer() {
-    std::cout << "ID du point à supprimer : ";
-    if (!(std::cin >> id_)) {
-        std::cin.clear();
-        std::cin.ignore(10000, '\n');
-        std::cout << "Entrée invalide.\n";
+    cout << "ID du point a supprimer : ";
+    cin >> id_;
+    string dummy; getline(cin, dummy);
+
+    auto& elems = nuage_.elements();
+
+    index_ = -1;
+    for (size_t i = 0; i < elems.size(); ++i)
+        if (auto* p = dynamic_cast<Point*>(elems[i].get()))
+            if (p->getId() == id_) { index_ = i; break; }
+
+    if (index_ == -1) {
+        cout << "Introuvable\n";
         return;
     }
-    std::cin.ignore(10000, '\n');
 
-    sauvegarde_ = nullptr;
-    index_ = 0;
-    aEteExecute_ = false;
-
-    auto& elems = nuage_.elements_;  // accès via friend
-
-    for (std::size_t i = 0; i < elems.size(); ++i) {
-        Point* p = dynamic_cast<Point*>(elems[i]);
-        if (p && p->getId() == id_) {
-            sauvegarde_ = elems[i];
-            index_ = i;
-            elems.erase(elems.begin() + i);
-            aEteExecute_ = true;
-            nuage_.notifier();
-            std::cout << "Point #" << id_ << " supprimé.\n";
-            return;
-        }
-    }
-
-    std::cout << "Point introuvable.\n";
+    sauvegarde_ = std::move(elems[index_]);
+    elems.erase(elems.begin() + index_);
+    aEteExecute_ = true;
 }
 
 void CmdSupprimer::annuler() {
-    if (!aEteExecute_ || !sauvegarde_) return;
-
-    auto& elems = nuage_.elements_;
-    if (index_ > elems.size())
-        index_ = elems.size();
-
-    elems.insert(elems.begin() + index_, sauvegarde_);
-    nuage_.notifier();
+    if (!aEteExecute_) return;
+    auto& elems = nuage_.elements();
+    elems.insert(elems.begin() + index_, std::move(sauvegarde_));
+    aEteExecute_ = false;
 }
 
-// ------------------------------------------------------------
-// CmdSurfaceC1
-// ------------------------------------------------------------
-
-CmdSurfaceC1::CmdSurfaceC1(GestionnaireSurface& gest, NuageDePoints& nuage)
-    : gest_(gest), nuage_(nuage) {}
+// ===== Surfaces =====
 
 void CmdSurfaceC1::executer() {
-    gest_.setStrategie(std::make_shared<CreateurSurfaceC1>());
-    Surface s = gest_.generer(nuage_);
-
-    std::cout << "Surface C1 (ordre IDs) :\n";
-    for (const auto& p : s.points) {
-        std::cout << "ID " << p.getId()
-                  << " (" << p.getX() << "," << p.getY() << ")\n";
-    }
+    gest_.setStrategie(make_unique<CreateurSurfaceC1>());
+    gest_.generer(nuage_);
+    cout << "Surfaces C1 generees.\n";
 }
 
-// ------------------------------------------------------------
-// CmdSurfaceC2
-// ------------------------------------------------------------
-
-CmdSurfaceC2::CmdSurfaceC2(GestionnaireSurface& gest, NuageDePoints& nuage)
-    : gest_(gest), nuage_(nuage) {}
-
 void CmdSurfaceC2::executer() {
-    gest_.setStrategie(std::make_shared<CreateurSurfaceC2>());
-    Surface s = gest_.generer(nuage_);
-
-    std::cout << "Surface C2 (distance minimale) :\n";
-    for (const auto& p : s.points) {
-        std::cout << "ID " << p.getId()
-                  << " (" << p.getX() << "," << p.getY() << ")\n";
-    }
+    gest_.setStrategie(make_unique<CreateurSurfaceC2>());
+    gest_.generer(nuage_);
+    cout << "Surfaces C2 generees.\n";
 }
