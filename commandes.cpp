@@ -42,16 +42,44 @@ void ControleurCommandes::executerCommande(const string& nom) {
 void ControleurCommandes::undo() { hist_.undo(); }
 void ControleurCommandes::redo() { hist_.redo(); }
 
-void ControleurCommandes::creerEtExecuter(const string& nom) {
-    if (nom == "a") hist_.pushExec(make_unique<CmdAfficherListe>(nuage_));
-    else if (nom == "o1") hist_.pushExec(make_unique<CmdAfficherO1>(aff1_, nuage_, gest_));
-    else if (nom == "o2") hist_.pushExec(make_unique<CmdAfficherO2>(aff2_, nuage_, gest_));
-    else if (nom == "f") hist_.pushExec(make_unique<CmdFusion>(nuage_, aff1_, aff2_));
-    else if (nom == "d") hist_.pushExec(make_unique<CmdDeplacer>(nuage_, aff1_, aff2_));
-    else if (nom == "s") hist_.pushExec(make_unique<CmdSupprimer>(nuage_, 0)); // corrigé ci-dessous
-    else if (nom == "c1") hist_.pushExec(make_unique<CmdSurfaceC1>(gest_, nuage_));
-    else if (nom == "c2") hist_.pushExec(make_unique<CmdSurfaceC2>(gest_, nuage_));
+void ControleurCommandes::creerEtExecuter(const std::string& nom)
+{
+    if (nom == "a") {
+        // Affichage simple -> pas dans l'historique
+        CmdAfficherListe cmd(nuage_);
+        cmd.executer();
+    }
+    else if (nom == "o1") {
+        // Affichage orthèse textures -> pas dans l'historique
+        CmdAfficherO1 cmd(aff1_, nuage_, gest_);
+        cmd.executer();
+    }
+    else if (nom == "o2") {
+        // Affichage orthèse IDs -> pas dans l'historique
+        CmdAfficherO2 cmd(aff2_, nuage_, gest_);
+        cmd.executer();
+    }
+    else if (nom == "f") {
+        // Commande modifiante -> enregistrée pour undo/redo
+        hist_.pushExec(std::make_unique<CmdFusion>(nuage_, aff1_, aff2_));
+    }
+    else if (nom == "d") {
+        // Commande modifiante -> enregistrée
+        hist_.pushExec(std::make_unique<CmdDeplacer>(nuage_, aff1_, aff2_));
+    }
+    else if (nom == "s") {
+        // Commande modifiante -> enregistrée
+        hist_.pushExec(std::make_unique<CmdSupprimer>(nuage_, aff1_, aff2_));
+    }
+    else if (nom == "c1") {
+        // Surfaces : on peut les considérer comme modifiantes
+        hist_.pushExec(std::make_unique<CmdSurfaceC1>(gest_, nuage_));
+    }
+    else if (nom == "c2") {
+        hist_.pushExec(std::make_unique<CmdSurfaceC2>(gest_, nuage_));
+    }
 }
+
 
 // ================= Commandes =================
 
@@ -115,34 +143,62 @@ void CmdFusion::executer() {
 // ===== Déplacer =====
 
 CmdDeplacer::CmdDeplacer(NuageDePoints& n, AfficheurO1& a1, AfficheurO2& a2)
-    : nuage_(n), a1_(a1), a2_(a2) {}
+    : nuage_(n), aff1_(a1), aff2_(a2) {}
 
-void CmdDeplacer::executer() {
-    cout << "ID du point : ";
-    cin >> id_;
-    cout << "Nouvelle position (x y) : ";
-    cin >> nouvX_ >> nouvY_;
-    string dummy; getline(cin, dummy);
+void CmdDeplacer::executer()
+{
+    // La première fois : on lit l'entrée utilisateur et on mémorise
+    if (!configure_) {
+        std::cout << "ID du point : ";
+        std::cin >> id_;
+        std::cout << "Nouvelle position (x y) : ";
+        std::cin >> nouvX_ >> nouvY_;
+        std::string dummy; std::getline(std::cin, dummy); // vider la fin de ligne
 
-    if (auto* p = nuage_.trouverPointParId(id_)) {
+        Point* p = nuage_.trouverPointParId(id_);
+        if (!p) {
+            std::cout << "ID introuvable.\n";
+            id_ = -1;
+            return;
+        }
+
         ancienX_ = p->x();
         ancienY_ = p->y();
-        p->setPos(nouvX_, nouvY_);
+        configure_ = true;
     }
 
-    a1_.afficher();
-    a2_.afficher();
+    // Que ce soit la première exécution ou un redo : on applique le déplacement
+    if (id_ >= 0) {
+        if (auto* p = nuage_.trouverPointParId(id_)) {
+            p->setPos(nouvX_, nouvY_);
+        }
+    }
+
+    std::cout << "\n";
+    aff1_.afficher();
+    aff2_.afficher();
 }
 
-void CmdDeplacer::annuler() {
-    if (auto* p = nuage_.trouverPointParId(id_))
+
+void CmdDeplacer::annuler()
+{
+    if (!configure_ || id_ < 0) return;
+
+    if (auto* p = nuage_.trouverPointParId(id_)) {
         p->setPos(ancienX_, ancienY_);
+    }
+
+    std::cout << "\n";
+    aff1_.afficher();
+    aff2_.afficher();
 }
+
 
 // ===== Supprimer =====
 
-CmdSupprimer::CmdSupprimer(NuageDePoints& n, int id)
-    : nuage_(n), id_(id) {}
+CmdSupprimer::CmdSupprimer(NuageDePoints& n, AfficheurO1& a1, AfficheurO2& a2)
+    : nuage_(n), aff1_(a1), aff2_(a2) {}
+
 
 void CmdSupprimer::executer() {
     cout << "ID du point a supprimer : ";

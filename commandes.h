@@ -99,34 +99,39 @@ private:
 // d
 class CmdDeplacer : public ICommand {
 public:
-    CmdDeplacer(NuageDePoints& n, AfficheurO1& a1, AfficheurO2& a2);
+    CmdDeplacer(NuageDePoints& nuage, AfficheurO1& a1, AfficheurO2& a2);
     void executer() override;
     void annuler() override;
 private:
     NuageDePoints& nuage_;
-    AfficheurO1& a1_;
-    AfficheurO2& a2_;
+    AfficheurO1& aff1_;
+    AfficheurO2& aff2_;
     int id_ = -1;
-    int ancienX_, ancienY_;
-    int nouvX_, nouvY_;
+    int ancienX_ = 0, ancienY_ = 0;
+    int nouvX_ = 0, nouvY_ = 0;
+    bool configure_ = false;   // 🔹 ajouté
 };
+
 
 // s
 class CmdSupprimer : public ICommand {
 public:
-    CmdSupprimer(NuageDePoints& n, int id);
+    CmdSupprimer(NuageDePoints& nuage, AfficheurO1& a1, AfficheurO2& a2);
 
     void executer() override;
     void annuler() override;
 
 private:
     NuageDePoints& nuage_;
-    int id_;
+    AfficheurO1& aff1_;
+    AfficheurO2& aff2_;
+    int id_ = -1;
 
     std::unique_ptr<IElement> sauvegarde_;
     int index_ = -1;
     bool aEteExecute_ = false;
 };
+
 
 // c1 / c2
 class CmdSurfaceC1 : public ICommand {
