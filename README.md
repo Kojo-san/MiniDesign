@@ -1,37 +1,26 @@
-# 🌌 VR Solar System with A-Frame
+# MiniDesign - TP4 LOG2400  
 
-A simple **Virtual Reality Solar System** built with [A-Frame](https://aframe.io), using HTML and JavaScript.  
-This project recreates the Sun and planets with textures and rotation animations, offering an immersive VR experience directly in the browser.  
-
-## 🚀 Live Demo
-[![GitHub Pages](https://img.shields.io/badge/View%20Live%20Demo-%2300C853?style=for-the-badge&logo=github&logoColor=white)](https://kojo-san.github.io/solarSystemVR/)
-
-## ✨ Features
-- 🌞 Animated rotating Sun  
-- 🪐 Planets with realistic textures and orbits  
-- 🌌 Starry night sky background  
-- 🔭 Works directly in the browser with no setup  
-
-## 🛠️ Tech Stack
-- **HTML5**
-- **JavaScript (A-Frame framework)**
-- **CSS3** (optional for styling)
-
-## 📦 Installation
-1. Clone the repository:
+## Compilation
    ```bash
-   git clone https://github.com/Kojo-san/solarSystemVR.git
- 2. Navigate into the project folder
-   ```bash
-   cd solarSystemVR
+   g++ -std=c++17 *.cpp -o MiniDesign_new.exe
   ```
- 3. Open `index.html` in your browser (or use VS Code with the **Live Server** extension)
 
-## 📝 How tu Use
-1. Open the live demo link or `index.html` locally.
-2. Look around the virtual scene (click and drag your mouse).
-3. Observe the planets rotating around the Sun in a VR environment.
+## Exécution
+   ```bash
+ ./MiniDesign_new.exe "(5,0) (14,16) (23,0) (0,8) (0,0) (28,8)"
+  ```
+Le programme accepte une liste de points (x,y) séparés par des espaces.
+Ensuite, utilisez les commandes interactives :
+* a : afficher la liste des points et nuages
+* o1 / o2 : afficher l’orthèse ASCII
+* f : fusionner des points en un nuage (texture appliquée automatiquement : o puis #)
+* d : déplacer un point
+* s : supprimer un point
+* c1 / c2 : création de surfaces selon Strategy
+* u / r : undo / redo
+* q : quitter
 
-## 📜 License
-This project is licensed under the **MIT License** — you can use, modify, and share it freely.
+## Auteurs
+* Gamaliel Kalefe
+* Sara Dakir
 
