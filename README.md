@@ -2,12 +2,12 @@
 
 ## Compilation
    ```bash
-   g++ -std=c++17 *.cpp -o MiniDesign_new.exe
+   g++ -std=c++17 *.cpp -o MiniDesign.exe
   ```
 
 ## Exécution
    ```bash
- ./MiniDesign_new.exe "(5,0) (14,16) (23,0) (0,8) (0,0) (28,8)"
+ ./MiniDesign.exe "(5,0) (14,16) (23,0) (0,8) (0,0) (28,8)"
   ```
 Le programme accepte une liste de points (x,y) séparés par des espaces.
 Ensuite, utilisez les commandes interactives :
