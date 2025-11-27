@@ -105,8 +105,8 @@ void CmdAfficherO2::executer() {
 
     vector<Pixel> px;
     for (auto* p : pts) {
-        char c = (p->getId() < 10 ? '0' + p->getId() : '*');
-        px.push_back({ p->x(), p->y(), c });
+        std::string s = (p->getId() < 10 ? std::string(1, char('0' + p->getId())) : std::string("*"));
+        px.push_back({ p->x(), p->y(), s });
     }
 
     cout << "\n\n";
@@ -128,12 +128,17 @@ void CmdFusion::executer() {
     istringstream iss(l);
     while (iss >> id) ids_.push_back(id);
 
-    cout << "Texture : ";
-    getline(cin, texture_);
+    // Choisir automatiquement la texture selon le nombre de fusions effectuées
+    static int compteurFusion = 0;
+    std::string textureCourante = (compteurFusion == 0) ? std::string("o") : std::string("#");
+    ++compteurFusion;
 
     for (int pid : ids_)
-        if (auto* p = nuage_.trouverPointParId(pid))
-            p->setTexture(creerTextureDepuisString(texture_));
+        if (auto* p = nuage_.trouverPointParId(pid)) {
+            std::string ancienne = p->texture().valeur();
+            std::string nouvelle = ancienne + textureCourante;
+            p->setTexture(creerTextureDepuisString(nouvelle));
+        }
 
     cout << "\n";
     a1_.afficher();

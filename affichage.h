@@ -1,15 +1,16 @@
 #pragma once
 #include <vector>
+#include <string>
 
 // Taille de la grille (même que l’énoncé de base)
 constexpr int LARGEUR = 30;
 constexpr int HAUTEUR = 20;
 
-// Point à afficher dans la grille (caractère déjà décidé : '.', 'o', '#', '0'..)
+// Point à afficher dans la grille (chaîne : '.', 'o', '#', 'o#', '0'..)
 struct Pixel {
     int x;
     int y;
-    char c;
+    std::string c;
 };
 
 // Segment entre deux points (pour tracer les surfaces)

@@ -33,7 +33,8 @@ public:
     void setTexture(std::unique_ptr<ITexture> t) { texture_ = std::move(t); }
     const ITexture& texture() const { return *texture_; }
 
-    char symbolePourAffichage() const;
+    // Retourne la chaîne complète pour affichage (ex: "", "o", "#", "o#")
+    std::string symbolePourAffichage() const;
 
     void afficherListe(std::ostream& os, int indent = 0) const override;
     void collecterPoints(std::vector<Point*>& res) override { res.push_back(this); }
@@ -104,7 +105,7 @@ public:
     void actualiser() override {}
 
 protected:
-    virtual char symbolePourPoint(const Point& p) const = 0;
+    virtual std::string symbolePourPoint(const Point& p) const = 0;
     virtual void afficherEntete(std::ostream& os) const = 0;
 
 private:
@@ -115,7 +116,7 @@ class AfficheurO1 : public Afficheur {
 public:
     using Afficheur::Afficheur;
 protected:
-    char symbolePourPoint(const Point& p) const override;
+    std::string symbolePourPoint(const Point& p) const override;
     void afficherEntete(std::ostream& os) const override;
 };
 
@@ -123,6 +124,6 @@ class AfficheurO2 : public Afficheur {
 public:
     using Afficheur::Afficheur;
 protected:
-    char symbolePourPoint(const Point& p) const override;
+    std::string symbolePourPoint(const Point& p) const override;
     void afficherEntete(std::ostream& os) const override;
 };

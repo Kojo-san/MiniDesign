@@ -9,9 +9,9 @@ using namespace std;
 Point::Point(int id, int x, int y)
     : id_(id), x_(x), y_(y), texture_(make_unique<TextureVide>()) {}
 
-char Point::symbolePourAffichage() const {
-    string v = texture_->valeur();
-    return v.empty() ? '.' : v[0];
+std::string Point::symbolePourAffichage() const {
+    std::string v = texture_->valeur();
+    return v.empty() ? std::string(".") : v;
 }
 
 void Point::afficherListe(ostream& os, int indent) const {
@@ -107,7 +107,7 @@ void Afficheur::afficher() {
     dessinerGrille(pixels, segs);
 }
 
-char AfficheurO1::symbolePourPoint(const Point& p) const {
+std::string AfficheurO1::symbolePourPoint(const Point& p) const {
     return p.symbolePourAffichage();
 }
 
@@ -115,9 +115,10 @@ void AfficheurO1::afficherEntete(ostream& os) const {
     os << "\nAffichage textures des points :\n";
 }
 
-char AfficheurO2::symbolePourPoint(const Point& p) const {
+std::string AfficheurO2::symbolePourPoint(const Point& p) const {
     int id = p.getId();
-    return (id >= 0 && id <= 9) ? char('0' + id) : '*';
+    if (id >= 0 && id <= 9) return std::string(1, char('0' + id));
+    return std::string("*");
 }
 
 void AfficheurO2::afficherEntete(ostream& os) const {

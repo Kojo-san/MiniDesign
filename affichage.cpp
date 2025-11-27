@@ -6,7 +6,7 @@
 using namespace std;
 
 // Algorithme de tracé de ligne (Bresenham simplifié)
-static void tracerLigne(vector<vector<char>>& grille,
+static void tracerLigne(vector<vector<string>>& grille,
                         int x0, int y0, int x1, int y1)
 {
     int dx = abs(x1 - x0);
@@ -17,7 +17,7 @@ static void tracerLigne(vector<vector<char>>& grille,
 
     while (true) {
         if (x0 >= 0 && x0 < LARGEUR && y0 >= 0 && y0 < HAUTEUR)
-            grille[y0][x0] = '/';
+            grille[y0][x0] = "/";
 
         if (x0 == x1 && y0 == y1)
             break;
@@ -31,7 +31,7 @@ void dessinerGrille(const vector<Pixel>& points,
                     const vector<Segment>& segments)
 {
     // y = 0 en bas, comme dans l’énoncé
-    vector<vector<char>> grille(HAUTEUR, vector<char>(LARGEUR, ' '));
+    vector<vector<string>> grille(HAUTEUR, vector<string>(LARGEUR, " "));
 
     // tracer les lignes des surfaces
     for (const auto& s : segments) {
