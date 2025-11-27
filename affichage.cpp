@@ -10,20 +10,40 @@ static void tracerLigne(vector<vector<string>>& grille,
                         int x0, int y0, int x1, int y1)
 {
     int dx = abs(x1 - x0);
-    int dy = -abs(y1 - y0);
+    int dy = abs(y1 - y0);
     int sx = (x0 < x1) ? 1 : -1;
     int sy = (y0 < y1) ? 1 : -1;
-    int err = dx + dy;
+
+    // Choisir un symbole représentatif selon la pente globale
+    std::string symbole = "/";
+    if (x0 == x1) {
+        symbole = "|";
+    } else if (y0 == y1) {
+        symbole = "-";
+    } else {
+        // pente non nulle : si produit des signes positif => '/', sinon '\'
+        int dxs = x1 - x0;
+        int dys = y1 - y0;
+        if (dxs * dys > 0)
+            symbole = "/";
+        else
+            symbole = "\\";
+    }
+
+    // Utiliser l'algorithme de Bresenham pour tracer les points du segment
+    int err = (dx > dy ? dx : -dy) / 2;
+    int curx = x0;
+    int cury = y0;
 
     while (true) {
-        if (x0 >= 0 && x0 < LARGEUR && y0 >= 0 && y0 < HAUTEUR)
-            grille[y0][x0] = "/";
+        if (curx >= 0 && curx < LARGEUR && cury >= 0 && cury < HAUTEUR)
+            grille[cury][curx] = symbole;
 
-        if (x0 == x1 && y0 == y1)
+        if (curx == x1 && cury == y1)
             break;
-        int e2 = 2 * err;
-        if (e2 >= dy) { err += dy; x0 += sx; }
-        if (e2 <= dx) { err += dx; y0 += sy; }
+        int e2 = err;
+        if (e2 > -dx) { err -= dy; curx += sx; }
+        if (e2 < dy)  { err += dx; cury += sy; }
     }
 }
 

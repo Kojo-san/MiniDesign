@@ -43,19 +43,24 @@ vector<Segment> CreateurSurfaceC2::creerSurfaces(const NuageDePoints& nuage)
     vector<Segment> segs;
     if (pts.size() < 2) return segs;
 
+    // Pour determinisme : trier par ID et commencer par le plus petit ID
+    sort(pts.begin(), pts.end(), [](Point* a, Point* b){ return a->getId() < b->getId(); });
+
     vector<bool> utilise(pts.size(), false);
-    size_t idx = 0;   // commence au point 0
+    size_t idx = 0;   // commence au point avec plus petit ID
     size_t premier = idx;
     utilise[idx] = true;
     size_t utilises = 1;
 
     while (utilises < pts.size()) {
-        size_t meilleur = -1;
+        size_t meilleur = (size_t)-1;
         double dmin = 1e18;
         for (size_t j = 0; j < pts.size(); ++j) {
             if (utilise[j]) continue;
             double d = dist2(pts[idx], pts[j]);
-            if (d < dmin) { dmin = d; meilleur = j; }
+            if (d < dmin || (d == dmin && pts[j]->getId() < pts[meilleur]->getId())) {
+                dmin = d; meilleur = j;
+            }
         }
         if (meilleur == (size_t)-1) break;
         segs.push_back({ pts[idx]->x(), pts[idx]->y(),
