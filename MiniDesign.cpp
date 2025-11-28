@@ -7,7 +7,6 @@
 
 using namespace std;
 
-// Parse "(x,y)" ...
 static bool parsePoint(const string& token, int& x, int& y)
 {
     if (token.size() < 5) return false;
@@ -48,7 +47,6 @@ int main(int argc, char* argv[])
         }
     }
 
-    // Afficheurs + surfaces + contrôleur de commandes
     AfficheurO1 aff1(nuage);
     AfficheurO2 aff2(nuage);
     GestionnaireSurface gest;
@@ -60,13 +58,13 @@ int main(int argc, char* argv[])
              << "a  - Afficher les points et les nuages\n"
              << "o1 - Afficher l'orthèse avec les textures des points\n"
              << "o2 - Afficher l'orthèse avec les IDs des points\n"
-             << "f  - Fusionner des points dans un nuage (et appliquer texture)\n"
+             << "f  - Fusionner des points/nuages dans un nouveau nuage (et appliquer texture)\n"
              << "d  - Deplacer un point (ID)\n"
              << "s  - Supprimer un point (ID)\n"
+             << "u  - Annuler la dernière commande (undo)\n"
+             << "r  - Réappliquer la commande annulée (redo)\n"
              << "c1 - Créer les surfaces selon l'ordre des IDs\n"
              << "c2 - Créer les surfaces selon la distance minimale\n"
-             << "u  - Undo (annuler la dernière commande modifiante)\n"
-             << "r  - Redo (réappliquer la commande annulée)\n"
              << "q  - Quitter\n> ";
         if (!getline(cin, cmd)) break;
         if (cmd == "q") break;

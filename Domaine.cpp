@@ -4,7 +4,6 @@
 
 using namespace std;
 
-// ===== Point =====
 
 Point::Point(int id, int x, int y)
     : id_(id), x_(x), y_(y), texture_(make_unique<TextureVide>()) {}
@@ -20,7 +19,6 @@ void Point::afficherListe(ostream& os, int indent) const {
        << texture_->valeur() << "'\n";
 }
 
-// ===== Nuage =====
 
 NuageDePoints::NuageDePoints(const string& nom)
     : nom_(nom) {}
@@ -70,7 +68,6 @@ void NuageDePoints::collecterPoints(vector<Point*>& res) {
         e->collecterPoints(res);
 }
 
-// Observer
 void NuageDePoints::attacher(IObservateur* obs) {
     observateurs_.push_back(obs);
 }
@@ -86,7 +83,6 @@ void NuageDePoints::notifier() {
         o->actualiser();
 }
 
-// ===== Afficheur =====
 
 Afficheur::Afficheur(NuageDePoints& nuage)
     : nuage_(nuage) {
@@ -101,7 +97,7 @@ void Afficheur::afficher() {
     for (auto* p : pts)
         pixels.push_back({ p->x(), p->y(), symbolePourPoint(*p) });
 
-    vector<Segment> segs; // surfaces en dehors
+    vector<Segment> segs; 
 
     afficherEntete(cout);
     dessinerGrille(pixels, segs);

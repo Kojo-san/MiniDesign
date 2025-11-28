@@ -7,7 +7,6 @@
 #include "Domaine.h"
 #include "Surfaces.h"
 
-// ===== Commande =====
 
 class ICommand {
 public:
@@ -46,7 +45,6 @@ private:
     void creerEtExecuter(const std::string& nom);
 };
 
-// a
 class CmdAfficherListe : public ICommand {
 public:
     CmdAfficherListe(NuageDePoints& n) : nuage_(n) {}
@@ -56,7 +54,6 @@ private:
     NuageDePoints& nuage_;
 };
 
-// o1
 class CmdAfficherO1 : public ICommand {
 public:
     CmdAfficherO1(AfficheurO1& a, const NuageDePoints& n, const GestionnaireSurface& g)
@@ -69,7 +66,6 @@ private:
     const GestionnaireSurface& gest_;
 };
 
-// o2
 class CmdAfficherO2 : public ICommand {
 public:
     CmdAfficherO2(AfficheurO2& a, const NuageDePoints& n, const GestionnaireSurface& g)
@@ -82,7 +78,6 @@ private:
     const GestionnaireSurface& gest_;
 };
 
-// f
 class CmdFusion : public ICommand {
 public:
     CmdFusion(NuageDePoints& n, AfficheurO1& a1, AfficheurO2& a2);
@@ -96,7 +91,6 @@ private:
     std::string texture_;
 };
 
-// d
 class CmdDeplacer : public ICommand {
 public:
     CmdDeplacer(NuageDePoints& nuage, AfficheurO1& a1, AfficheurO2& a2);
@@ -113,7 +107,6 @@ private:
 };
 
 
-// s
 class CmdSupprimer : public ICommand {
 public:
     CmdSupprimer(NuageDePoints& nuage, AfficheurO1& a1, AfficheurO2& a2);
@@ -133,7 +126,6 @@ private:
 };
 
 
-// c1 / c2
 class CmdSurfaceC1 : public ICommand {
 public:
     CmdSurfaceC1(GestionnaireSurface& g, const NuageDePoints& n)

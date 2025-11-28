@@ -11,7 +11,6 @@ static double dist2(const Point* a, const Point* b)
     return dx*dx + dy*dy;
 }
 
-// ==== C1 : ordre d’ID ====
 
 vector<Segment> CreateurSurfaceC1::creerSurfaces(const NuageDePoints& nuage)
 {
@@ -27,14 +26,13 @@ vector<Segment> CreateurSurfaceC1::creerSurfaces(const NuageDePoints& nuage)
         segs.push_back({ pts[i]->x(), pts[i]->y(),
                          pts[i+1]->x(), pts[i+1]->y() });
     }
-    // ferme la forme
+
     segs.push_back({ pts.back()->x(), pts.back()->y(),
                      pts.front()->x(), pts.front()->y() });
 
     return segs;
 }
 
-// ==== C2 : nearest-neighbor ====
 
 vector<Segment> CreateurSurfaceC2::creerSurfaces(const NuageDePoints& nuage)
 {
@@ -43,11 +41,10 @@ vector<Segment> CreateurSurfaceC2::creerSurfaces(const NuageDePoints& nuage)
     vector<Segment> segs;
     if (pts.size() < 2) return segs;
 
-    // Pour determinisme : trier par ID et commencer par le plus petit ID
     sort(pts.begin(), pts.end(), [](Point* a, Point* b){ return a->getId() < b->getId(); });
 
     vector<bool> utilise(pts.size(), false);
-    size_t idx = 0;   // commence au point avec plus petit ID
+    size_t idx = 0;   
     size_t premier = idx;
     utilise[idx] = true;
     size_t utilises = 1;
@@ -70,14 +67,12 @@ vector<Segment> CreateurSurfaceC2::creerSurfaces(const NuageDePoints& nuage)
         ++utilises;
     }
 
-    // relier le dernier au premier
     segs.push_back({ pts[idx]->x(), pts[idx]->y(),
                      pts[premier]->x(), pts[premier]->y() });
 
     return segs;
 }
 
-// ==== GestionnaireSurface ====
 
 GestionnaireSurface::GestionnaireSurface()
     : strategie_(make_unique<CreateurSurfaceC1>()) {}

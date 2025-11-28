@@ -8,7 +8,6 @@
 
 class IObservateur;
 
-// ======== IElement (Composite) ========
 
 class IElement {
 public:
@@ -18,7 +17,6 @@ public:
     virtual int getId() const = 0;
 };
 
-// ======== Point ========
 
 class Point : public IElement {
 public:
@@ -33,7 +31,6 @@ public:
     void setTexture(std::unique_ptr<ITexture> t) { texture_ = std::move(t); }
     const ITexture& texture() const { return *texture_; }
 
-    // Retourne la chaîne complète pour affichage (ex: "", "o", "#", "o#")
     std::string symbolePourAffichage() const;
 
     void afficherListe(std::ostream& os, int indent = 0) const override;
@@ -46,7 +43,6 @@ private:
     std::unique_ptr<ITexture> texture_;
 };
 
-// ======== Observer ========
 
 class ISujet {
 public:
@@ -62,7 +58,6 @@ public:
     virtual void actualiser() = 0;
 };
 
-// ======== NuageDePoints (Composite + Sujet) ========
 
 class NuageDePoints : public IElement, public ISujet {
 public:
@@ -79,12 +74,10 @@ public:
     void afficherListe(std::ostream& os, int indent = 0) const override;
     void collecterPoints(std::vector<Point*>& res) override;
 
-    // Observer
     void attacher(IObservateur* obs) override;
     void detacher(IObservateur* obs) override;
     void notifier() override;
 
-    // accès sécurisé
     auto& elements() { return elements_; }
     const auto& elements() const { return elements_; }
 
@@ -94,7 +87,6 @@ private:
     std::vector<IObservateur*> observateurs_;
 };
 
-// ======== Afficheurs ========
 
 class Afficheur : public IObservateur {
 public:
