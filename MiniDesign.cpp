@@ -3,7 +3,7 @@
 #include <string>
 #include "Domaine.h"
 #include "Surfaces.h"
-#include "Commandes.h"
+#include "commandes.h"
 
 using namespace std;
 
