@@ -1,4 +1,4 @@
-#include "Commandes.h"
+#include "commandes.h"
 #include <iostream>
 #include <sstream>
 #include <algorithm>
@@ -174,20 +174,26 @@ void CmdFusion::executer() {
 
             if (auto* nuageExist = dynamic_cast<NuageDePoints*>(element)) {
 
+                // Create a new sub-nuage with the same texture
+                auto sousNuageCopie = std::make_unique<NuageDePoints>(nuageExist->texture());
+                // Set the ID to match the original nuage
+                sousNuageCopie->setId(nuageExist->getId());
                 
+                // Copy all points from the existing nuage into the new sub-nuage
                 vector<Point*> pointsDuNuage;
                 nuageExist->collecterPoints(pointsDuNuage);
 
                 for (auto* pt : pointsDuNuage) {
-                    
                     auto pointCopie = std::make_unique<Point>(pt->getId(), pt->x(), pt->y());
                     std::string finale = calculerNouvelleTexture(pt);
                     pointCopie->setTexture(creerTextureDepuisString(finale));
-                    nouveauNuage->ajouter(std::move(pointCopie));
+                    sousNuageCopie->ajouter(std::move(pointCopie));
 
-                    
                     appliquerTextureParId(nuage_, pt->getId(), finale);
                 }
+                
+                // Add the sub-nuage as a whole element to the new nuage
+                nouveauNuage->ajouter(std::move(sousNuageCopie));
             }
         }
         else {

@@ -1,6 +1,7 @@
 #include "Surfaces.h"
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 using namespace std;
 
@@ -16,19 +17,76 @@ vector<Segment> CreateurSurfaceC1::creerSurfaces(const NuageDePoints& nuage)
 {
     vector<Point*> pts;
     const_cast<NuageDePoints&>(nuage).collecterPoints(pts);
-    sort(pts.begin(), pts.end(),
-        [](Point* a, Point* b){ return a->getId() < b->getId(); });
-
+    
     vector<Segment> segs;
     if (pts.size() < 2) return segs;
 
-    for (size_t i = 0; i + 1 < pts.size(); ++i) {
-        segs.push_back({ pts[i]->x(), pts[i]->y(),
-                         pts[i+1]->x(), pts[i+1]->y() });
+    // Calculate centroid
+    double cx = 0, cy = 0;
+    for (auto* p : pts) {
+        cx += p->x();
+        cy += p->y();
+    }
+    cx /= pts.size();
+    cy /= pts.size();
+
+    // Separate outer points (on convex hull) from inner points
+    // For simplicity, consider points at corners as outer (max/min x,y)
+    int minX = pts[0]->x(), maxX = pts[0]->x();
+    int minY = pts[0]->y(), maxY = pts[0]->y();
+    for (auto* p : pts) {
+        if (p->x() < minX) minX = p->x();
+        if (p->x() > maxX) maxX = p->x();
+        if (p->y() < minY) minY = p->y();
+        if (p->y() > maxY) maxY = p->y();
     }
 
-    segs.push_back({ pts.back()->x(), pts.back()->y(),
-                     pts.front()->x(), pts.front()->y() });
+    // Separate outer (corner) points from inner points
+    vector<Point*> outer, inner;
+    for (auto* p : pts) {
+        bool isCorner = (p->x() == minX || p->x() == maxX) && 
+                        (p->y() == minY || p->y() == maxY);
+        if (isCorner) {
+            outer.push_back(p);
+        } else {
+            inner.push_back(p);
+        }
+    }
+
+    // Sort outer points by angle from centroid
+    sort(outer.begin(), outer.end(),
+        [cx, cy](Point* a, Point* b) {
+            double angleA = atan2(a->y() - cy, a->x() - cx);
+            double angleB = atan2(b->y() - cy, b->x() - cx);
+            return angleA < angleB;
+        });
+
+    // Create segments for outer polygon
+    for (size_t i = 0; i + 1 < outer.size(); ++i) {
+        segs.push_back({ outer[i]->x(), outer[i]->y(),
+                         outer[i+1]->x(), outer[i+1]->y() });
+    }
+    if (!outer.empty()) {
+        segs.push_back({ outer.back()->x(), outer.back()->y(),
+                         outer.front()->x(), outer.front()->y() });
+    }
+
+    // Connect each inner point to nearest outer point
+    for (auto* innerPt : inner) {
+        Point* nearest = nullptr;
+        double minDist = numeric_limits<double>::max();
+        for (auto* outerPt : outer) {
+            double d = dist2(innerPt, outerPt);
+            if (d < minDist) {
+                minDist = d;
+                nearest = outerPt;
+            }
+        }
+        if (nearest) {
+            segs.push_back({ innerPt->x(), innerPt->y(),
+                             nearest->x(), nearest->y() });
+        }
+    }
 
     return segs;
 }
@@ -51,7 +109,7 @@ vector<Segment> CreateurSurfaceC2::creerSurfaces(const NuageDePoints& nuage)
 
     while (utilises < pts.size()) {
         size_t meilleur = (size_t)-1;
-        double dmin = 1e18;
+        double dmin = numeric_limits<double>::max();
         for (size_t j = 0; j < pts.size(); ++j) {
             if (utilise[j]) continue;
             double d = dist2(pts[idx], pts[j]);
