@@ -114,14 +114,13 @@ void CmdFusion::executer() {
     string l;
     getline(cin, l);
     ids_.clear();
-    
-    
+
     int id;
     istringstream iss(l);
     while (iss >> id) ids_.push_back(id);
 
-    if(ids_.empty()){
-        cout<< "Aucun ID specifie.\n";
+    if (ids_.empty()) {
+        cout << "Aucun ID specifie.\n";
         return;
     }
 
@@ -129,48 +128,66 @@ void CmdFusion::executer() {
     std::string textureCourante = (compteurFusion == 0) ? "o" : "#";
 
     auto nouveauNuage = std::make_unique<NuageDePoints>(textureCourante);
-    idNuageCree_ =nouveauNuage->getId();
+    idNuageCree_ = nouveauNuage->getId();
 
     for (int idElem : ids_) cout << idElem << " ";
     cout << endl;
 
+    // Petite lambda pour appliquer la texture courante en la composant
+    auto appliquerTextureFusion = [&](Point* p) {
+        std::string base = p->texture().valeur();     // texture actuelle du point
+        std::string finale = base + textureCourante;  // on ajoute la nouvelle ("o" ou "#")
+        p->setTexture(creerTextureDepuisString(finale));
+    };
+
     for (int idElement : ids_) {
-        
+
         if (Point* point = nuage_.trouverPointParId(idElement)) {
 
+            // Créer une copie avec texture composée
             auto pointCopie = std::make_unique<Point>(point->getId(), point->x(), point->y());
-            pointCopie->setTexture(creerTextureDepuisString(textureCourante));
+            {
+                std::string base = point->texture().valeur();
+                std::string finale = base + textureCourante;
+                pointCopie->setTexture(creerTextureDepuisString(finale));
+            }
             nouveauNuage->ajouter(std::move(pointCopie));
-            
-            point->setTexture(creerTextureDepuisString(textureCourante));
+
+            // Mettre aussi à jour le point original
+            appliquerTextureFusion(point);
         }
-    
+
         else if (IElement* element = nuage_.trouverElementParId(idElement)) {
 
             if (auto* nuageExist = dynamic_cast<NuageDePoints*>(element)) {
 
                 vector<Point*> pointsDuNuage;
-            
+
                 for (const auto& elem : nuageExist->elements()) {
 
                     if (auto* p = dynamic_cast<Point*>(elem.get())) {
                         pointsDuNuage.push_back(p);
                     }
-                   
                     else if (auto* sousNuage = dynamic_cast<NuageDePoints*>(elem.get())) {
                         vector<Point*> pointsSousNuage;
-                        sousNuage->collecterPoints(pointsSousNuage); 
-                        pointsDuNuage.insert(pointsDuNuage.end(), pointsSousNuage.begin(), pointsSousNuage.end());
+                        sousNuage->collecterPoints(pointsSousNuage);
+                        pointsDuNuage.insert(pointsDuNuage.end(),
+                                             pointsSousNuage.begin(), pointsSousNuage.end());
                     }
                 }
-                
-               
+
                 for (auto* pt : pointsDuNuage) {
+                    // Copie avec texture composée
                     auto pointCopie = std::make_unique<Point>(pt->getId(), pt->x(), pt->y());
-                    pointCopie->setTexture(creerTextureDepuisString(textureCourante));
+                    {
+                        std::string base = pt->texture().valeur();
+                        std::string finale = base + textureCourante;
+                        pointCopie->setTexture(creerTextureDepuisString(finale));
+                    }
                     nouveauNuage->ajouter(std::move(pointCopie));
-                    
-                    pt->setTexture(creerTextureDepuisString(textureCourante));
+
+                    // Mise à jour du point original
+                    appliquerTextureFusion(pt);
                 }
             }
         }
@@ -178,7 +195,7 @@ void CmdFusion::executer() {
             cout << "Element " << idElement << " introuvable.\n";
         }
     }
-    
+
     if (!nouveauNuage->elements().empty()) {
         nuage_.ajouter(std::move(nouveauNuage));
         compteurFusion++;
@@ -186,8 +203,6 @@ void CmdFusion::executer() {
     } else {
         cout << "Aucun element valide pour la fusion.\n";
     }
-    
-    
 }
 
 
