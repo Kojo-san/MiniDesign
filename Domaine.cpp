@@ -75,23 +75,17 @@ void NuageDePoints::afficherListe(ostream& os, int indent) const {
     for (const auto& e : elements_){
 
         if(auto* p = dynamic_cast<Point*>(e.get())){
-            e->afficherListe(os, indent);
+            os << tabs << p->getId() << ": (" << p->x() << "," << p->y() << ")  textures: '"
+               << p->texture().valeur() << "'\n";
         }
-        
-    }
-        
+        else if (auto* n = dynamic_cast<NuageDePoints*>(e.get())) {
+            os << tabs << n->getId() << ": Nuage '" << n->texture() << "' contient les elements: ";
 
-    for (const auto& e : elements_) {
-        if (auto* n = dynamic_cast<NuageDePoints*>(e.get())) {
-
-            os << tabs << n->getId() << ": Nuage '" << n->texture() << "' contient les points: ";
-
-            vector<Point*> pointsDuNuage;
-            n->collecterPoints(pointsDuNuage);
-
-            for (size_t i = 0; i < pointsDuNuage.size(); ++i) {
-                os << pointsDuNuage[i]->getId();
-                if (i + 1 < pointsDuNuage.size()) os << ", ";
+            bool premier = true;
+            for (const auto& sousElem : n->elements()) {
+                if (!premier) os << ", ";
+                premier = false;
+                os << sousElem->getId();
             }
             os << "\n";
         }

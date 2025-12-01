@@ -5,6 +5,21 @@
 using namespace std;
 
 
+static void appliquerTextureParId(NuageDePoints& racine,
+                                  int idPoint,
+                                  const std::string& nouvelleTexture)
+{
+    vector<Point*> tousLesPoints;
+    racine.collecterPoints(tousLesPoints);
+
+    for (auto* p : tousLesPoints) {
+        if (p->getId() == idPoint) {
+            p->setTexture(creerTextureDepuisString(nouvelleTexture));
+        }
+    }
+}
+
+
 void Historique::pushExec(unique_ptr<ICommand> cmd) {
     cmd->executer();
     pileUndo_.push(std::move(cmd));
@@ -114,14 +129,13 @@ void CmdFusion::executer() {
     string l;
     getline(cin, l);
     ids_.clear();
-    
-    
+
     int id;
     istringstream iss(l);
     while (iss >> id) ids_.push_back(id);
 
-    if(ids_.empty()){
-        cout<< "Aucun ID specifie.\n";
+    if (ids_.empty()) {
+        cout << "Aucun ID specifie.\n";
         return;
     }
 
@@ -129,48 +143,50 @@ void CmdFusion::executer() {
     std::string textureCourante = (compteurFusion == 0) ? "o" : "#";
 
     auto nouveauNuage = std::make_unique<NuageDePoints>(textureCourante);
-    idNuageCree_ =nouveauNuage->getId();
+    idNuageCree_ = nouveauNuage->getId();
 
     for (int idElem : ids_) cout << idElem << " ";
     cout << endl;
 
+    
+    auto calculerNouvelleTexture = [&](const Point* p) {
+        std::string base = p->texture().valeur();     
+        return base + textureCourante;                
+    };
+
     for (int idElement : ids_) {
-        
+
         if (Point* point = nuage_.trouverPointParId(idElement)) {
 
-            auto pointCopie = std::make_unique<Point>(point->getId(), point->x(), point->y());
-            pointCopie->setTexture(creerTextureDepuisString(textureCourante));
-            nouveauNuage->ajouter(std::move(pointCopie));
             
-            point->setTexture(creerTextureDepuisString(textureCourante));
+            auto pointCopie = std::make_unique<Point>(point->getId(), point->x(), point->y());
+            {
+                std::string finale = calculerNouvelleTexture(point);
+                pointCopie->setTexture(creerTextureDepuisString(finale));
+            }
+            nouveauNuage->ajouter(std::move(pointCopie));
+
+            
+            appliquerTextureParId(nuage_, point->getId(), calculerNouvelleTexture(point));
         }
-    
+
         else if (IElement* element = nuage_.trouverElementParId(idElement)) {
 
             if (auto* nuageExist = dynamic_cast<NuageDePoints*>(element)) {
 
-                vector<Point*> pointsDuNuage;
-            
-                for (const auto& elem : nuageExist->elements()) {
-
-                    if (auto* p = dynamic_cast<Point*>(elem.get())) {
-                        pointsDuNuage.push_back(p);
-                    }
-                   
-                    else if (auto* sousNuage = dynamic_cast<NuageDePoints*>(elem.get())) {
-                        vector<Point*> pointsSousNuage;
-                        sousNuage->collecterPoints(pointsSousNuage); 
-                        pointsDuNuage.insert(pointsDuNuage.end(), pointsSousNuage.begin(), pointsSousNuage.end());
-                    }
-                }
                 
-               
+                vector<Point*> pointsDuNuage;
+                nuageExist->collecterPoints(pointsDuNuage);
+
                 for (auto* pt : pointsDuNuage) {
-                    auto pointCopie = std::make_unique<Point>(pt->getId(), pt->x(), pt->y());
-                    pointCopie->setTexture(creerTextureDepuisString(textureCourante));
-                    nouveauNuage->ajouter(std::move(pointCopie));
                     
-                    pt->setTexture(creerTextureDepuisString(textureCourante));
+                    auto pointCopie = std::make_unique<Point>(pt->getId(), pt->x(), pt->y());
+                    std::string finale = calculerNouvelleTexture(pt);
+                    pointCopie->setTexture(creerTextureDepuisString(finale));
+                    nouveauNuage->ajouter(std::move(pointCopie));
+
+                    
+                    appliquerTextureParId(nuage_, pt->getId(), finale);
                 }
             }
         }
@@ -178,7 +194,7 @@ void CmdFusion::executer() {
             cout << "Element " << idElement << " introuvable.\n";
         }
     }
-    
+
     if (!nouveauNuage->elements().empty()) {
         nuage_.ajouter(std::move(nouveauNuage));
         compteurFusion++;
@@ -186,8 +202,6 @@ void CmdFusion::executer() {
     } else {
         cout << "Aucun element valide pour la fusion.\n";
     }
-    
-    
 }
 
 

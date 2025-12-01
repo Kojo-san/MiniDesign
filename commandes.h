@@ -103,7 +103,7 @@ private:
     int id_ = -1;
     int ancienX_ = 0, ancienY_ = 0;
     int nouvX_ = 0, nouvY_ = 0;
-    bool configure_ = false;   // 🔹 ajouté
+    bool configure_ = false;   
 };
 
 
