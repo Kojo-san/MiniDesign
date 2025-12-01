@@ -132,6 +132,7 @@ void CmdFusion::executer() {
 
     int id;
     istringstream iss(l);
+    
     while (iss >> id) ids_.push_back(id);
 
     if (ids_.empty()) {
@@ -145,51 +146,54 @@ void CmdFusion::executer() {
     auto nouveauNuage = std::make_unique<NuageDePoints>(textureCourante);
     idNuageCree_ = nouveauNuage->getId();
 
-    for (int idElem : ids_) cout << idElem << " ";
-    cout << endl;
-
-    
     auto calculerNouvelleTexture = [&](const Point* p) {
         std::string base = p->texture().valeur();     
         return base + textureCourante;                
     };
 
     for (int idElement : ids_) {
-
+        
         if (Point* point = nuage_.trouverPointParId(idElement)) {
-
-            
+    
             auto pointCopie = std::make_unique<Point>(point->getId(), point->x(), point->y());
-            {
-                std::string finale = calculerNouvelleTexture(point);
-                pointCopie->setTexture(creerTextureDepuisString(finale));
-            }
+            std::string finale = calculerNouvelleTexture(point);
+
+            pointCopie->setTexture(creerTextureDepuisString(finale));
             nouveauNuage->ajouter(std::move(pointCopie));
 
-            
-            appliquerTextureParId(nuage_, point->getId(), calculerNouvelleTexture(point));
+            appliquerTextureParId(nuage_, point->getId(), finale);
         }
-
+        
         else if (IElement* element = nuage_.trouverElementParId(idElement)) {
 
             if (auto* nuageExist = dynamic_cast<NuageDePoints*>(element)) {
-
+               
+                auto& elems = nuage_.elements();
+                unique_ptr<IElement> nuageADeplacer;
                 
-                vector<Point*> pointsDuNuage;
-                nuageExist->collecterPoints(pointsDuNuage);
+                for (auto it = elems.begin(); it != elems.end(); ++it) {
 
-                for (auto* pt : pointsDuNuage) {
+                    if ((*it)->getId() == idElement) {
+                        nuageADeplacer = std::move(*it);
+                        elems.erase(it);
+                        break;
+                    }
+                }
+                
+                if (nuageADeplacer) {
+                    vector<Point*> pointsDuNuage;
+                    nuageExist->collecterPoints(pointsDuNuage);
                     
-                    auto pointCopie = std::make_unique<Point>(pt->getId(), pt->x(), pt->y());
-                    std::string finale = calculerNouvelleTexture(pt);
-                    pointCopie->setTexture(creerTextureDepuisString(finale));
-                    nouveauNuage->ajouter(std::move(pointCopie));
-
+                    for (auto* pt : pointsDuNuage) {
+                        std::string finale = calculerNouvelleTexture(pt);
+                        appliquerTextureParId(nuage_, pt->getId(), finale);
+                    }
                     
-                    appliquerTextureParId(nuage_, pt->getId(), finale);
+                    nouveauNuage->ajouter(std::move(nuageADeplacer));
                 }
             }
         }
+
         else {
             cout << "Element " << idElement << " introuvable.\n";
         }
@@ -199,7 +203,9 @@ void CmdFusion::executer() {
         nuage_.ajouter(std::move(nouveauNuage));
         compteurFusion++;
         cout << "Fusion terminee. Nuage " << idNuageCree_ << " cree.\n";
-    } else {
+    } 
+    
+    else {
         cout << "Aucun element valide pour la fusion.\n";
     }
 }
@@ -301,3 +307,4 @@ void CmdSurfaceC2::executer() {
     gest_.generer(nuage_);
     cout << "Surfaces C2 generees.\n";
 }
+
