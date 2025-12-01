@@ -64,6 +64,7 @@ public:
     explicit NuageDePoints(const std::string& texture = "");
 
     int getId() const override { return id_; }
+    void setId(int id) { id_ = id; }
     void setTexture(const std::string& texture) {texture_ = texture; }
     const std::string& texture() const { return texture_; }
 

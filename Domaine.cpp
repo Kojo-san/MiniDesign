@@ -79,11 +79,24 @@ void NuageDePoints::afficherListe(ostream& os, int indent) const {
                << p->texture().valeur() << "'\n";
         }
         else if (auto* n = dynamic_cast<NuageDePoints*>(e.get())) {
-            os << tabs << n->getId() << ": Nuage '" << n->texture() << "' contient les elements: ";
+            // Determine if nuage contains only points or also sub-nuages
+            bool contientNuages = false;
+            for (const auto& sousElem : n->elements()) {
+                if (dynamic_cast<NuageDePoints*>(sousElem.get())) {
+                    contientNuages = true;
+                    break;
+                }
+            }
+            
+            if (contientNuages) {
+                os << tabs << n->getId() << ": Nuage '" << n->texture() << "' contient les elements: ";
+            } else {
+                os << tabs << n->getId() << ": Nuage '" << n->texture() << "' contient les points: ";
+            }
 
             bool premier = true;
             for (const auto& sousElem : n->elements()) {
-                if (!premier) os << ", ";
+                if (!premier) os << " ";
                 premier = false;
                 os << sousElem->getId();
             }
