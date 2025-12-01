@@ -75,12 +75,10 @@ void NuageDePoints::afficherListe(ostream& os, int indent) const {
     for (const auto& e : elements_){
 
         if(auto* p = dynamic_cast<Point*>(e.get())){
-            // Afficher le point avec sa texture propre
             os << tabs << p->getId() << ": (" << p->x() << "," << p->y() << ")  textures: '"
                << p->texture().valeur() << "'\n";
         }
         else if (auto* n = dynamic_cast<NuageDePoints*>(e.get())) {
-            // Afficher le nuage sans "développer" les textures des points
             os << tabs << n->getId() << ": Nuage '" << n->texture() << "' contient les elements: ";
 
             bool premier = true;
