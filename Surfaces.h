@@ -4,6 +4,7 @@
 #include "affichage.h"
 
 class IStrategieSurface {
+    
 public:
     virtual ~IStrategieSurface() = default;
     virtual std::vector<Segment> creerSurfaces(const NuageDePoints& nuage) = 0;

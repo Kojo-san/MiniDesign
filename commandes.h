@@ -88,7 +88,7 @@ private:
     AfficheurO1& a1_;
     AfficheurO2& a2_;
     std::vector<int> ids_;
-    std::string texture_;
+    int idNuageCree_ = -1;
 };
 
 class CmdDeplacer : public ICommand {

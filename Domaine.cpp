@@ -4,6 +4,7 @@
 
 using namespace std;
 
+int NuageDePoints::prochainId_ = 4;
 
 Point::Point(int id, int x, int y)
     : id_(id), x_(x), y_(y), texture_(make_unique<TextureVide>()) {}
@@ -20,11 +21,34 @@ void Point::afficherListe(ostream& os, int indent) const {
 }
 
 
-NuageDePoints::NuageDePoints(const string& nom)
-    : nom_(nom) {}
+NuageDePoints::NuageDePoints(const string& texture)
+    : texture_(texture), id_(prochainId_++) {}
 
 void NuageDePoints::ajouter(unique_ptr<IElement> el) {
     elements_.push_back(std::move(el));
+    notifier();
+}
+
+IElement* NuageDePoints::trouverElementParId(int id){
+
+    if(id_ == id){
+        return this;
+    }
+
+    for(auto& e : elements_){
+
+        if(e->getId()== id){
+            return e.get();
+        }
+
+        if(auto* n = dynamic_cast<NuageDePoints*>(e.get())){
+
+            if(auto* elem = n->trouverElementParId(id)){
+                return elem;
+            }        
+        }
+    }
+    return nullptr;
 }
 
 Point* NuageDePoints::trouverPointParId(int id) {
@@ -38,6 +62,8 @@ Point* NuageDePoints::trouverPointParId(int id) {
     return nullptr;
 }
 
+
+
 const Point* NuageDePoints::trouverPointParId(int id) const {
     return const_cast<NuageDePoints*>(this)->trouverPointParId(id);
 }
@@ -45,18 +71,27 @@ const Point* NuageDePoints::trouverPointParId(int id) const {
 void NuageDePoints::afficherListe(ostream& os, int indent) const {
     string tabs(indent, ' ');
     os << tabs << "Liste:\n";
-    for (const auto& e : elements_)
-        e->afficherListe(os, indent);
+
+    for (const auto& e : elements_){
+
+        if(auto* p = dynamic_cast<Point*>(e.get())){
+            e->afficherListe(os, indent);
+        }
+        
+    }
+        
 
     for (const auto& e : elements_) {
         if (auto* n = dynamic_cast<NuageDePoints*>(e.get())) {
-            vector<Point*> pts;
-            n->collecterPoints(pts);
 
-            os << tabs << "Nuage '" << n->nom() << "' contient les points: ";
-            for (size_t i = 0; i < pts.size(); ++i) {
-                os << pts[i]->getId();
-                if (i + 1 < pts.size()) os << ", ";
+            os << tabs << n->getId() << ": Nuage '" << n->texture() << "' contient les points: ";
+
+            vector<Point*> pointsDuNuage;
+            n->collecterPoints(pointsDuNuage);
+
+            for (size_t i = 0; i < pointsDuNuage.size(); ++i) {
+                os << pointsDuNuage[i]->getId();
+                if (i + 1 < pointsDuNuage.size()) os << ", ";
             }
             os << "\n";
         }
@@ -65,7 +100,14 @@ void NuageDePoints::afficherListe(ostream& os, int indent) const {
 
 void NuageDePoints::collecterPoints(vector<Point*>& res) {
     for (auto& e : elements_)
-        e->collecterPoints(res);
+
+        if (auto* p = dynamic_cast<Point*>(e.get())){
+            res.push_back(p);
+        }
+        else if (auto* n = dynamic_cast<NuageDePoints*>(e.get())) {
+            n->collecterPoints(res);  
+        }
+        
 }
 
 void NuageDePoints::attacher(IObservateur* obs) {

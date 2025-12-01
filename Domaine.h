@@ -61,12 +61,14 @@ public:
 
 class NuageDePoints : public IElement, public ISujet {
 public:
-    explicit NuageDePoints(const std::string& nom = "principal");
+    explicit NuageDePoints(const std::string& texture = "");
 
-    int getId() const override { return -1; }
-    const std::string& nom() const { return nom_; }
+    int getId() const override { return id_; }
+    void setTexture(const std::string& texture) {texture_ = texture; }
+    const std::string& texture() const { return texture_; }
 
     void ajouter(std::unique_ptr<IElement> el);
+    IElement* trouverElementParId(int id);
 
     Point* trouverPointParId(int id);
     const Point* trouverPointParId(int id) const;
@@ -82,7 +84,9 @@ public:
     const auto& elements() const { return elements_; }
 
 private:
-    std::string nom_;
+    int id_;
+    static int prochainId_;
+    std::string texture_;
     std::vector<std::unique_ptr<IElement>> elements_;
     std::vector<IObservateur*> observateurs_;
 };

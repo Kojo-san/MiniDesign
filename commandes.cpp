@@ -1,6 +1,7 @@
 #include "Commandes.h"
 #include <iostream>
 #include <sstream>
+#include <algorithm>
 using namespace std;
 
 
@@ -106,32 +107,87 @@ void CmdAfficherO2::executer() {
 
 
 CmdFusion::CmdFusion(NuageDePoints& n, AfficheurO1& a1, AfficheurO2& a2)
-    : nuage_(n), a1_(a1), a2_(a2) {}
+    : nuage_(n), a1_(a1), a2_(a2), idNuageCree_(-1)  {}
 
 void CmdFusion::executer() {
     cout << "IDs des points/nuages a fusionner : ";
     string l;
     getline(cin, l);
     ids_.clear();
-
+    
+    
     int id;
     istringstream iss(l);
     while (iss >> id) ids_.push_back(id);
 
+    if(ids_.empty()){
+        cout<< "Aucun ID specifie.\n";
+        return;
+    }
+
     static int compteurFusion = 0;
-    std::string textureCourante = (compteurFusion == 0) ? std::string("o") : std::string("#");
-    ++compteurFusion;
+    std::string textureCourante = (compteurFusion == 0) ? "o" : "#";
 
-    for (int pid : ids_)
-        if (auto* p = nuage_.trouverPointParId(pid)) {
-            std::string ancienne = p->texture().valeur();
-            std::string nouvelle = ancienne + textureCourante;
-            p->setTexture(creerTextureDepuisString(nouvelle));
+    auto nouveauNuage = std::make_unique<NuageDePoints>(textureCourante);
+    idNuageCree_ =nouveauNuage->getId();
+
+    for (int idElem : ids_) cout << idElem << " ";
+    cout << endl;
+
+    for (int idElement : ids_) {
+        
+        if (Point* point = nuage_.trouverPointParId(idElement)) {
+
+            auto pointCopie = std::make_unique<Point>(point->getId(), point->x(), point->y());
+            pointCopie->setTexture(creerTextureDepuisString(textureCourante));
+            nouveauNuage->ajouter(std::move(pointCopie));
+            
+            point->setTexture(creerTextureDepuisString(textureCourante));
         }
+    
+        else if (IElement* element = nuage_.trouverElementParId(idElement)) {
 
-    cout << "\n";
-    a1_.afficher();
-    a2_.afficher();
+            if (auto* nuageExist = dynamic_cast<NuageDePoints*>(element)) {
+
+                vector<Point*> pointsDuNuage;
+            
+                for (const auto& elem : nuageExist->elements()) {
+
+                    if (auto* p = dynamic_cast<Point*>(elem.get())) {
+                        pointsDuNuage.push_back(p);
+                    }
+                   
+                    else if (auto* sousNuage = dynamic_cast<NuageDePoints*>(elem.get())) {
+                        vector<Point*> pointsSousNuage;
+                        sousNuage->collecterPoints(pointsSousNuage); 
+                        pointsDuNuage.insert(pointsDuNuage.end(), pointsSousNuage.begin(), pointsSousNuage.end());
+                    }
+                }
+                
+               
+                for (auto* pt : pointsDuNuage) {
+                    auto pointCopie = std::make_unique<Point>(pt->getId(), pt->x(), pt->y());
+                    pointCopie->setTexture(creerTextureDepuisString(textureCourante));
+                    nouveauNuage->ajouter(std::move(pointCopie));
+                    
+                    pt->setTexture(creerTextureDepuisString(textureCourante));
+                }
+            }
+        }
+        else {
+            cout << "Element " << idElement << " introuvable.\n";
+        }
+    }
+    
+    if (!nouveauNuage->elements().empty()) {
+        nuage_.ajouter(std::move(nouveauNuage));
+        compteurFusion++;
+        cout << "Fusion terminee. Nuage " << idNuageCree_ << " cree.\n";
+    } else {
+        cout << "Aucun element valide pour la fusion.\n";
+    }
+    
+    
 }
 
 
@@ -145,7 +201,7 @@ void CmdDeplacer::executer()
         std::cin >> id_;
         std::cout << "Nouvelle position (x y) : ";
         std::cin >> nouvX_ >> nouvY_;
-        std::string dummy; std::getline(std::cin, dummy); // vider la fin de ligne
+        std::string dummy; std::getline(std::cin, dummy); 
 
         Point* p = nuage_.trouverPointParId(id_);
         if (!p) {
