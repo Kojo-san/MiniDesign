@@ -1,6 +1,7 @@
 #include "Surfaces.h"
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 using namespace std;
 
@@ -37,7 +38,6 @@ vector<Segment> CreateurSurfaceC1::creerSurfaces(const NuageDePoints& nuage)
         if (p->x() < minX) minX = p->x();
         if (p->x() > maxX) maxX = p->x();
         if (p->y() < minY) minY = p->y();
-        if (p->y() > maxY) minY = p->y();
         if (p->y() > maxY) maxY = p->y();
     }
 
@@ -74,7 +74,7 @@ vector<Segment> CreateurSurfaceC1::creerSurfaces(const NuageDePoints& nuage)
     // Connect each inner point to nearest outer point
     for (auto* innerPt : inner) {
         Point* nearest = nullptr;
-        double minDist = 1e18;
+        double minDist = numeric_limits<double>::max();
         for (auto* outerPt : outer) {
             double d = dist2(innerPt, outerPt);
             if (d < minDist) {
@@ -109,7 +109,7 @@ vector<Segment> CreateurSurfaceC2::creerSurfaces(const NuageDePoints& nuage)
 
     while (utilises < pts.size()) {
         size_t meilleur = (size_t)-1;
-        double dmin = 1e18;
+        double dmin = numeric_limits<double>::max();
         for (size_t j = 0; j < pts.size(); ++j) {
             if (utilise[j]) continue;
             double d = dist2(pts[idx], pts[j]);
